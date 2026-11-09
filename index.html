@@ -292,6 +292,9 @@
     background:rgba(47,217,196,0.06);
   }
   .card p{ color:var(--muted); font-size:14px; line-height:1.6; margin:0 0 18px; }
+  .card p.repo-meta{ color:var(--muted-dim); font-family:'IBM Plex Mono', monospace; font-size:11px; margin:0; }
+  .project-message{ grid-column:1 / -1; color:var(--muted); line-height:1.6; margin:0; padding:18px 0; }
+  .project-message a{ color:var(--accent-2); text-decoration:underline; text-underline-offset:3px; }
   .card-link{
     font-size:13px; color:var(--ink); display:inline-flex; align-items:center; gap:6px;
     font-family:'IBM Plex Mono', monospace;
@@ -418,71 +421,11 @@
 <section id="work">
   <div class="wrap">
     <div class="section-head">
-      <h2>Selected work</h2>
-      <span class="tag">6 selected projects</span>
+      <h2>Pinned repositories</h2>
+      <span class="tag" id="project-count" aria-live="polite">Loading from GitHub…</span>
     </div>
-    <div class="projects-grid">
-
-      <div class="card-perspective">
-        <div class="card tilt">
-          <div>
-            <div class="card-top"><h3>whiterock-mobile</h3><span class="lang-tag">TypeScript</span></div>
-            <p>WhiteRock Connect — an Android app built with Expo. The flagship mobile project, starred and actively maintained.</p>
-          </div>
-          <a class="card-link" href="https://github.com/Peaceable0909/whiterock-mobile" target="_blank" rel="noopener">View repo <span class="arrow">→</span></a>
-        </div>
-      </div>
-
-      <div class="card-perspective">
-        <div class="card tilt">
-          <div>
-            <div class="card-top"><h3>UkVisaForm</h3><span class="lang-tag">HTML</span></div>
-            <p>A structured form for collecting student information for UK visa applications — built for accuracy under pressure.</p>
-          </div>
-          <a class="card-link" href="https://github.com/Peaceable0909/UkVisaForm" target="_blank" rel="noopener">View repo <span class="arrow">→</span></a>
-        </div>
-      </div>
-
-      <div class="card-perspective">
-        <div class="card tilt">
-          <div>
-            <div class="card-top"><h3>uk-visa-application-form</h3><span class="lang-tag">JavaScript</span></div>
-            <p>A second pass at the visa application flow, rebuilt with more dynamic, JS-driven form logic.</p>
-          </div>
-          <a class="card-link" href="https://github.com/Peaceable0909/uk-visa-application-form" target="_blank" rel="noopener">View repo <span class="arrow">→</span></a>
-        </div>
-      </div>
-
-      <div class="card-perspective">
-        <div class="card tilt">
-          <div>
-            <div class="card-top"><h3>whiterock-document-form-rcl</h3><span class="lang-tag">HTML</span></div>
-            <p>A reusable document-collection form component built to slot into the wider WhiteRock system.</p>
-          </div>
-          <a class="card-link" href="https://github.com/Peaceable0909/whiterock-document-form-rcl" target="_blank" rel="noopener">View repo <span class="arrow">→</span></a>
-        </div>
-      </div>
-
-      <div class="card-perspective">
-        <div class="card tilt">
-          <div>
-            <div class="card-top"><h3>Regentinterview</h3><span class="lang-tag">HTML</span></div>
-            <p>A site built to help students book and prepare for their Regent College interview slots.</p>
-          </div>
-          <a class="card-link" href="https://github.com/Peaceable0909/Regentinterview" target="_blank" rel="noopener">View repo <span class="arrow">→</span></a>
-        </div>
-      </div>
-
-      <div class="card-perspective">
-        <div class="card tilt">
-          <div>
-            <div class="card-top"><h3>github-pages</h3><span class="lang-tag">Template</span></div>
-            <p>Forked from skills/github-pages — spinning up a site or blog straight from a GitHub repository.</p>
-          </div>
-          <a class="card-link" href="https://github.com/Peaceable0909/github-pages" target="_blank" rel="noopener">View repo <span class="arrow">→</span></a>
-        </div>
-      </div>
-
+    <div class="projects-grid" id="projects-grid" aria-busy="true">
+      <p class="project-message">Loading your pinned repositories…</p>
     </div>
   </div>
 </section>
@@ -553,6 +496,95 @@
       setMenuOpen(false);
       menuToggle.focus();
     }
+  });
+
+  const projectsGrid = document.getElementById('projects-grid');
+  const projectCount = document.getElementById('project-count');
+  const githubProfileUrl = 'https://github.com/Peaceable0909';
+
+  function showProjectMessage(message, linkLabel){
+    const paragraph = document.createElement('p');
+    paragraph.className = 'project-message';
+    paragraph.append(document.createTextNode(`${message} `));
+    if(linkLabel){
+      const link = document.createElement('a');
+      link.href = githubProfileUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = linkLabel;
+      paragraph.append(link);
+    }
+    projectsGrid.replaceChildren(paragraph);
+    projectsGrid.setAttribute('aria-busy', 'false');
+  }
+
+  function createProjectCard(project){
+    let repositoryUrl;
+    try{
+      repositoryUrl = new URL(project.url);
+    }catch{
+      return null;
+    }
+    if(repositoryUrl.origin !== 'https://github.com' || !repositoryUrl.pathname.startsWith('/Peaceable0909/')) return null;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'card-perspective';
+    const card = document.createElement('article');
+    card.className = 'card';
+    const content = document.createElement('div');
+    const top = document.createElement('div');
+    top.className = 'card-top';
+    const title = document.createElement('h3');
+    title.textContent = project.name || 'GitHub repository';
+    const language = document.createElement('span');
+    language.className = 'lang-tag';
+    language.textContent = project.language || 'Repository';
+    top.append(title, language);
+    const description = document.createElement('p');
+    description.textContent = project.description || 'Pinned repository on GitHub.';
+    const metadata = document.createElement('p');
+    metadata.className = 'repo-meta';
+    const stars = Number.isFinite(project.stars) ? project.stars : 0;
+    const updatedDate = project.updatedAt ? new Date(project.updatedAt) : null;
+    const updated = updatedDate && !Number.isNaN(updatedDate.getTime())
+      ? new Intl.DateTimeFormat(undefined, {year:'numeric', month:'short', day:'numeric'}).format(updatedDate)
+      : '';
+    metadata.textContent = `★ ${stars}${updated ? ` · Updated ${updated}` : ''}`;
+    content.append(top, description, metadata);
+
+    const link = document.createElement('a');
+    link.className = 'card-link';
+    link.href = repositoryUrl.href;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.append(document.createTextNode('View repository '));
+    const arrow = document.createElement('span');
+    arrow.className = 'arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = '→';
+    link.append(arrow);
+    card.append(content, link);
+    wrapper.append(card);
+    return wrapper;
+  }
+
+  fetch('./pinned-projects.json', {cache:'no-store'}).then(response => {
+    if(!response.ok) throw new Error('Pinned repository data is unavailable');
+    return response.json();
+  }).then(data => {
+    if(data.status !== 'ok' || !Array.isArray(data.projects)) throw new Error('Pinned repository data is unavailable');
+    const cards = data.projects.map(createProjectCard).filter(Boolean);
+    if(cards.length === 0){
+      projectCount.textContent = 'No public pins yet';
+      showProjectMessage('No public repositories are pinned yet.', 'Visit your GitHub profile');
+      return;
+    }
+    projectCount.textContent = `${cards.length} pinned ${cards.length === 1 ? 'repository' : 'repositories'}`;
+    projectsGrid.replaceChildren(...cards);
+    projectsGrid.setAttribute('aria-busy', 'false');
+  }).catch(() => {
+    projectCount.textContent = 'Pinned projects unavailable';
+    showProjectMessage('Pinned projects could not be loaded right now.', 'View your GitHub profile');
   });
 
   // 3D hero rig — tracks pointer, gently tilts, falls back to idle drift

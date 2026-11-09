@@ -6,6 +6,10 @@ on:
   push:
     branches: ["main"]
 
+  # Refresh the pinned-project snapshot daily as well as on deployments.
+  schedule:
+    - cron: "17 5 * * *"
+
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -30,6 +34,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Fetch pinned repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USERNAME: Peaceable0909
+        run: python3 scripts/fetch_pinned_projects.py
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
