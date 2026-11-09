@@ -84,7 +84,32 @@
   .navlinks{ display:flex; gap:32px; font-size:13px; color:var(--muted); }
   .navlinks a{ transition:color .2s ease; }
   .navlinks a:hover{ color:var(--ink); }
-  @media (max-width:640px){ .navlinks{ display:none; } }
+  .menu-toggle{
+    display:none; width:42px; height:42px; align-items:center; justify-content:center;
+    flex-direction:column; gap:5px; border:1px solid var(--line-strong);
+    border-radius:8px; background:var(--bg-elev); color:var(--ink); cursor:pointer;
+  }
+  .menu-toggle span{ width:17px; height:2px; background:currentColor; transition:transform .2s ease, opacity .2s ease; }
+  .menu-toggle[aria-expanded="true"] span:first-child{ transform:translateY(3.5px) rotate(45deg); }
+  .menu-toggle[aria-expanded="true"] span:last-child{ transform:translateY(-3.5px) rotate(-45deg); }
+  .skip-link{
+    position:absolute; top:8px; left:8px; z-index:100; padding:10px 14px;
+    background:var(--ink); color:var(--bg); border-radius:6px;
+    transform:translateY(-150%);
+  }
+  .skip-link:focus{ transform:translateY(0); }
+  @media (max-width:640px){
+    nav{ padding:14px 20px; }
+    .menu-toggle{ display:inline-flex; margin-left:auto; }
+    .navlinks{
+      display:none; position:absolute; top:calc(100% - 4px); left:20px; right:20px;
+      flex-direction:column; gap:0; padding:8px; border:1px solid var(--line-strong);
+      border-radius:12px; background:rgba(18,21,29,0.98); box-shadow:0 16px 36px rgba(0,0,0,0.35);
+    }
+    .navlinks[data-open="true"]{ display:flex; }
+    .navlinks a{ padding:13px 12px; border-radius:7px; }
+    .navlinks a:hover{ background:var(--bg-elev-2); }
+  }
 
   /* ---------- hero ---------- */
   .hero{
@@ -324,18 +349,22 @@
 
 <div class="grain"></div>
 
-<nav>
-  <div class="brand"><span class="brand-mark"></span> Peaceable</div>
-  <div class="navlinks">
+<nav aria-label="Main navigation">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <div class="brand"><span class="brand-mark" aria-hidden="true"></span> Peaceable</div>
+  <div class="navlinks" id="primaryLinks">
     <a href="#about">About</a>
     <a href="#work">Work</a>
     <a href="#achievements">Achievements</a>
     <a href="#contact">Contact</a>
   </div>
+  <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open navigation menu" aria-controls="primaryLinks" aria-expanded="false">
+    <span></span><span></span>
+  </button>
   <a class="btn btn-ghost" href="https://github.com/Peaceable0909" target="_blank" rel="noopener" style="padding:9px 16px; font-size:13px;">GitHub ↗</a>
 </nav>
 
-<header class="hero">
+<header class="hero" id="main-content" tabindex="-1">
   <div class="wrap hero-grid">
     <div>
       <div class="eyebrow"><span class="dot"></span> Available for select projects</div>
@@ -346,7 +375,7 @@
         <a class="btn btn-ghost" href="https://github.com/Peaceable0909" target="_blank" rel="noopener">@Peaceable0909</a>
       </div>
       <div class="stat-row">
-        <div class="stat"><b>21</b><span>Repositories</span></div>
+        <div class="stat"><b id="repo-count">21</b><span>Repositories</span></div>
         <div class="stat"><b>4×</b><span>Pair Extraordinaire</span></div>
         <div class="stat"><b>2×</b><span>Pull Shark</span></div>
       </div>
@@ -375,12 +404,12 @@
       <p>Profile bio says it plainly: <b>🎯 Focusing.</b> One thing at a time, built properly.</p>
     </div>
     <div class="facts">
-      <div class="fact"><span>Location</span><span>—</span></div>
+      <div class="fact"><span>Location</span><span id="profile-location">—</span></div>
       <div class="fact"><span>Primary stack</span><span>TypeScript / JavaScript</span></div>
       <div class="fact"><span>Platform focus</span><span>Expo · React Native</span></div>
       <div class="fact"><span>Domain</span><span>Forms & mobile tooling</span></div>
-      <div class="fact"><span>Followers</span><span>1</span></div>
-      <div class="fact"><span>Following</span><span>1</span></div>
+      <div class="fact"><span>Followers</span><span id="follower-count">1</span></div>
+      <div class="fact"><span>Following</span><span id="following-count">1</span></div>
       <div class="fact"><span>Handle</span><span>@Peaceable0909</span></div>
     </div>
   </div>
@@ -390,7 +419,7 @@
   <div class="wrap">
     <div class="section-head">
       <h2>Selected work</h2>
-      <span class="tag">6 of 21 repositories</span>
+      <span class="tag">6 selected projects</span>
     </div>
     <div class="projects-grid">
 
@@ -486,6 +515,46 @@
 </footer>
 
 <script>
+  // Load public profile fields; HTML values remain a no-JS/rate-limit fallback.
+  fetch('https://api.github.com/users/Peaceable0909', {
+    headers: { Accept: 'application/vnd.github+json' }
+  }).then(response => {
+    if (!response.ok) throw new Error('GitHub profile request failed');
+    return response.json();
+  }).then(profile => {
+    const fields = {
+      'repo-count': profile.public_repos,
+      'follower-count': profile.followers,
+      'following-count': profile.following
+    };
+    Object.entries(fields).forEach(([id, value]) => {
+      if (Number.isFinite(value)) document.getElementById(id).textContent = String(value);
+    });
+    if (typeof profile.location === 'string' && profile.location.trim()) {
+      document.getElementById('profile-location').textContent = profile.location.trim();
+    }
+  }).catch(() => {});
+
+  const menuToggle = document.getElementById('menuToggle');
+  const primaryLinks = document.getElementById('primaryLinks');
+  function setMenuOpen(open){
+    menuToggle.setAttribute('aria-expanded', String(open));
+    menuToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+    primaryLinks.dataset.open = String(open);
+  }
+  menuToggle.addEventListener('click', () => {
+    setMenuOpen(menuToggle.getAttribute('aria-expanded') !== 'true');
+  });
+  primaryLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => setMenuOpen(false));
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && menuToggle.getAttribute('aria-expanded') === 'true') {
+      setMenuOpen(false);
+      menuToggle.focus();
+    }
+  });
+
   // 3D hero rig — tracks pointer, gently tilts, falls back to idle drift
   const rig = document.getElementById('rig');
   const rigInner = document.getElementById('rigInner');
