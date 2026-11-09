@@ -44,6 +44,8 @@ jobs:
         with:
           source: ./
           destination: ./_site
+      - name: Copy pinned repository data into the Pages artifact
+        run: cp pinned-projects.json ./_site/pinned-projects.json
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
